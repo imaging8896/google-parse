@@ -1,2 +1,6 @@
 *.pyc
 .idea
+dist
+dist/*
+GoogleSearchKeyword.egg-info
+GoogleSearchKeyword.egg-info/*
