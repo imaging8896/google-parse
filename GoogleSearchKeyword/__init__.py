@@ -28,7 +28,7 @@ class GoogleSearchKeyword(object):
         for result in results:
             if len(result) == 4 and result.isdigit():
                 return result
-        raise ValueError("Unable to find stock number for '{}' stock name. Result in '{}'".format(stock_chinese_name, results))
+        return None
 
     def _search_and_get_soup(self, search_str, page_count):
         session = requests.session()
