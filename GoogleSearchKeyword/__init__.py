@@ -1,46 +1,58 @@
 # -*- coding: utf-8 -*-
-import requests
-from bs4 import BeautifulSoup
+from xgoogle.search import GoogleSearch
+import time
+import random
+import re
 
 
-class GoogleSearchKeyword(object):
+DEFAULT_SEARCH_AMOUNT = 30
 
-    def __init__(self):
-        self.default_looking_search_page = 2
 
-    def get_keywords(self, parse_str):
+class GoogleSearchKeyword(GoogleSearch):
+
+    def get_keywords(self):
         keywords = {}
-        for page in range(0, self.default_looking_search_page):
-            soup = self._search_and_get_soup(parse_str, page)
-            results = [x.text for x in soup.find(name="div", id="search").find_all("b")]
-            for result in results:
-                if result not in keywords:
-                    keywords[result] = 1
-                else:
-                    keywords[result] += 1
+        self.results_per_page = DEFAULT_SEARCH_AMOUNT
+        soup = self._search_and_get_soup()
+        results = []
+        for title in soup.find("div", {"id": "search"}).findAll("h3"):
+            results += ["".join(x.findAll(text=True)).strip() for x in title.findAll("b")]
+        for result in results:
+            if result not in keywords:
+                keywords[result] = 1
+            else:
+                keywords[result] += 1
         return keywords
 
-    def get_stock_num(self, stock_chinese_name):
-        search_str = "{}股票".format(stock_chinese_name)
-        soup = self._search_and_get_soup(search_str, 0)
+    def get_stock_num(self):
+        self.query = "{}股票".format(self.query)
+        self.results_per_page = 10
+        soup = self._search_and_get_soup()
+        for title in soup.find("div", {"id": "search"}).findAll("h3"):
+            title_a = title.find("a")
 
-        results = [x.text for x in soup.find(name="div", id="search").find_all("b")]
-        for result in results:
-            if len(result) == 4 and result.isdigit():
-                return result
+            url = title_a['href']
+            match = re.match(r'/url\?q=(https://tw.stock.yahoo.com[^&]+)&', url)
+            if match:
+                m = re.findall('\d+', "".join(title_a.findAll(text=True)).strip())
+                if m:
+                    for num in set(m):
+                        if len(num) == 4 and num.isdigit():
+                            return num
         return None
 
-    def _search_and_get_soup(self, search_str, page_count):
-        session = requests.session()
-        page_par = page_count * 10
-        search_url = "https://www.google.com.tw/search?q={0}&oq={0}&aqs=chrome..69i57j69i60l5.2439j0j7&sourceid=chrome&ie=UTF-8&start={1}".format(search_str, page_par)
-        response = session.get(search_url).text
-
-        return BeautifulSoup(response, 'html.parser')
+    def _search_and_get_soup(self):
+        self.page = 0
+        soup = self._get_results_page()
+        time.sleep(random.randint(3, 5))  # Try not to annnoy Google, with a random short wait
+        return soup
 
 
 if __name__ == '__main__':
-    # for k, v in GoogleSearchKeyword().get_keywords("[新聞] 鴻海減資逾兩成，股東哭哭").iteritems():
-    #     print "Word : '{}' count : '{}'".format(k.encode("utf-8"), v)
+    for k, v in GoogleSearchKeyword("[新聞] 鴻海減資逾兩成，股東哭哭").get_keywords().iteritems():
+        print "Word : '{}' count : '{}'".format(k.encode("utf-8"), v)
 
-    print str(GoogleSearchKeyword().get_stock_num("鴻海"))
+    print str(GoogleSearchKeyword("鴻海").get_stock_num())
+    print str(GoogleSearchKeyword("中鋼").get_stock_num())
+    print str(GoogleSearchKeyword("宏達電").get_stock_num())
+    print str(GoogleSearchKeyword("緯創").get_stock_num())
