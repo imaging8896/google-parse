@@ -30,15 +30,15 @@ class GoogleSearchKeyword(GoogleSearch):
         soup = self._search_and_get_soup()
         for title in soup.find("div", {"id": "search"}).findAll("h3"):
             title_a = title.find("a")
-
-            url = title_a['href']
-            match = re.match(r'/url\?q=(https://tw.stock.yahoo.com[^&]+)&', url)
-            if match:
-                m = re.findall('\d+', "".join(title_a.findAll(text=True)).strip())
-                if m:
-                    for num in set(m):
-                        if len(num) == 4 and num.isdigit():
-                            return num
+            if title_a:
+                url = title_a['href']
+                match = re.match(r'/url\?q=(https://tw.stock.yahoo.com[^&]+)&', url)
+                if match:
+                    m = re.findall('\d+', "".join(title_a.findAll(text=True)).strip())
+                    if m:
+                        for num in set(m):
+                            if len(num) == 4 and num.isdigit():
+                                return num
         return None
 
     def _search_and_get_soup(self):
